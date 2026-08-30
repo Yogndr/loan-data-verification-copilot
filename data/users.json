@@ -1,0 +1,17 @@
+[
+  {
+    "name": "Aarav Operator",
+    "email": "operator@demo.local",
+    "role": "DATA_OPERATOR"
+  },
+  {
+    "name": "Meera Reviewer",
+    "email": "reviewer@demo.local",
+    "role": "REVIEWER"
+  },
+  {
+    "name": "Kabir Consumer",
+    "email": "consumer@demo.local",
+    "role": "DATA_CONSUMER"
+  }
+]

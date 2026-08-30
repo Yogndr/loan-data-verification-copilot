@@ -1,0 +1,77 @@
+{
+  "required_fields": [
+    "loan_id",
+    "borrower_id",
+    "origination_date",
+    "original_principal",
+    "current_balance"
+  ],
+  "numeric_ranges": {
+    "interest_rate": {
+      "min": 0.1,
+      "max": 40
+    }
+  },
+  "rules": [
+    {
+      "id": "R001",
+      "name": "Required fields present",
+      "severity": "CRITICAL"
+    },
+    {
+      "id": "R002",
+      "name": "Unique loan ID",
+      "severity": "CRITICAL"
+    },
+    {
+      "id": "R003",
+      "name": "Valid dates",
+      "severity": "HIGH"
+    },
+    {
+      "id": "R004",
+      "name": "Maturity after origination",
+      "severity": "HIGH"
+    },
+    {
+      "id": "R005",
+      "name": "Non-negative principal and balance",
+      "severity": "CRITICAL"
+    },
+    {
+      "id": "R006",
+      "name": "Current balance <= original principal",
+      "severity": "HIGH"
+    },
+    {
+      "id": "R007",
+      "name": "Interest rate within expected range",
+      "severity": "MEDIUM"
+    },
+    {
+      "id": "R008",
+      "name": "Payment status consistent with DPD",
+      "severity": "HIGH"
+    },
+    {
+      "id": "R009",
+      "name": "Document status present",
+      "severity": "MEDIUM"
+    },
+    {
+      "id": "R010",
+      "name": "Stale record detection",
+      "severity": "MEDIUM"
+    },
+    {
+      "id": "R011",
+      "name": "Valid borrower state",
+      "severity": "MEDIUM"
+    },
+    {
+      "id": "R012",
+      "name": "Closed loan has zero balance",
+      "severity": "HIGH"
+    }
+  ]
+}
