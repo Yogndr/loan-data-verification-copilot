@@ -563,12 +563,6 @@ uploads/
 
 # 15. Installation
 
-## Clone the repository
-
-```bash
-git clone <your-github-repository-url>
-cd <project-folder>
-```
 
 ## Backend
 
