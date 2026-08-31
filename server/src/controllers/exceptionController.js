@@ -1,3 +1,4 @@
+
 const Exception = require("../models/Exception");
 const Loan = require("../models/Loan");
 const AIReview = require("../models/AIReview");
@@ -6,9 +7,19 @@ const {
   generateExceptionRecommendation,
 } = require("../services/aiService");
 
+// ============================================================
+// GET ALL EXCEPTIONS
+// ============================================================
+
 const getExceptions = async (req, res) => {
   try {
-    const { severity, status, loanId, page = 1, limit = 50 } = req.query;
+    const {
+      severity,
+      status,
+      loanId,
+      page = 1,
+      limit = 50,
+    } = req.query;
 
     const query = {};
 
@@ -16,17 +27,20 @@ const getExceptions = async (req, res) => {
     if (status) query.status = status;
     if (loanId) query.loanId = loanId;
 
-    const skip = (Number(page) - 1) * Number(limit);
+    const skip =
+      (Number(page) - 1) * Number(limit);
 
-    const [exceptions, total] = await Promise.all([
-      Exception.find(query)
-        .populate("loanId")
-        .populate("aiReview")
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(Number(limit)),
-      Exception.countDocuments(query),
-    ]);
+    const [exceptions, total] =
+      await Promise.all([
+        Exception.find(query)
+          .populate("loanId")
+          .populate("aiReview")
+          .sort({ createdAt: -1 })
+          .skip(skip)
+          .limit(Number(limit)),
+
+        Exception.countDocuments(query),
+      ]);
 
     res.json({
       success: true,
@@ -35,12 +49,18 @@ const getExceptions = async (req, res) => {
         pagination: {
           total,
           page: Number(page),
-          pages: Math.ceil(total / Number(limit)),
+          pages: Math.ceil(
+            total / Number(limit)
+          ),
         },
       },
     });
   } catch (error) {
-    console.error("Get exceptions error:", error);
+    console.error(
+      "Get exceptions error:",
+      error
+    );
+
     res.status(500).json({
       success: false,
       message: "Failed to fetch exceptions",
@@ -49,11 +69,16 @@ const getExceptions = async (req, res) => {
   }
 };
 
+// ============================================================
+// GET SINGLE EXCEPTION
+// ============================================================
+
 const getExceptionById = async (req, res) => {
   try {
-    const exception = await Exception.findById(req.params.id)
-      .populate("loanId")
-      .populate("aiReview");
+    const exception =
+      await Exception.findById(req.params.id)
+        .populate("loanId")
+        .populate("aiReview");
 
     if (!exception) {
       return res.status(404).json({
@@ -67,7 +92,11 @@ const getExceptionById = async (req, res) => {
       data: exception,
     });
   } catch (error) {
-    console.error("Get exception by id error:", error);
+    console.error(
+      "Get exception by id error:",
+      error
+    );
+
     res.status(500).json({
       success: false,
       message: "Failed to fetch exception",
@@ -75,6 +104,10 @@ const getExceptionById = async (req, res) => {
     });
   }
 };
+
+// ============================================================
+// REVIEW EXCEPTION
+// ============================================================
 
 const reviewException = async (req, res) => {
   try {
@@ -86,7 +119,10 @@ const reviewException = async (req, res) => {
       "REQUEST_CORRECTION",
     ];
 
-    if (!action || !allowedActions.includes(action)) {
+    if (
+      !action ||
+      !allowedActions.includes(action)
+    ) {
       return res.status(400).json({
         success: false,
         message:
@@ -94,7 +130,8 @@ const reviewException = async (req, res) => {
       });
     }
 
-    const exception = await Exception.findById(req.params.id);
+    const exception =
+      await Exception.findById(req.params.id);
 
     if (!exception) {
       return res.status(404).json({
@@ -109,7 +146,8 @@ const reviewException = async (req, res) => {
       REQUEST_CORRECTION: "CORRECTED",
     };
 
-    exception.status = statusMap[action];
+    exception.status =
+      statusMap[action];
 
     if (comment !== undefined) {
       exception.reviewerComment = comment;
@@ -117,13 +155,30 @@ const reviewException = async (req, res) => {
 
     await exception.save();
 
+    // Audit review action
+    await createAuditLog({
+      loanId: exception.loanId,
+      action: `EXCEPTION_${action}`,
+      actor: "REVIEWER",
+      details: {
+        exceptionId: exception._id,
+        exceptionType:
+          exception.exceptionType,
+        comment: comment || "",
+      },
+    });
+
     res.json({
       success: true,
       message: `Exception ${action.toLowerCase()}d successfully`,
       data: exception,
     });
   } catch (error) {
-    console.error("Review exception error:", error);
+    console.error(
+      "Review exception error:",
+      error
+    );
+
     res.status(500).json({
       success: false,
       message: "Failed to review exception",
@@ -132,9 +187,14 @@ const reviewException = async (req, res) => {
   }
 };
 
+// ============================================================
+// AI RECOMMENDATION
+// ============================================================
+
 const getAIRecommendation = async (req, res) => {
   try {
-    const exception = await Exception.findById(req.params.id);
+    const exception =
+      await Exception.findById(req.params.id);
 
     if (!exception) {
       return res.status(404).json({
@@ -143,89 +203,152 @@ const getAIRecommendation = async (req, res) => {
       });
     }
 
-    const loan = await Loan.findById(exception.loanId).lean();
+    if (!exception.loanId) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "This exception is not associated with a loan.",
+      });
+    }
+
+    const loan =
+      await Loan.findById(
+        exception.loanId
+      ).lean();
 
     if (!loan) {
       return res.status(404).json({
         success: false,
-        message: "Associated loan not found",
+        message:
+          "Associated loan not found",
       });
     }
 
     // Generate AI recommendation
-    const recommendation = await generateExceptionRecommendation({
-      exception: exception.toObject(),
-      loan,
-    });
+    const recommendation =
+      await generateExceptionRecommendation({
+        exception:
+          exception.toObject(),
+        loan,
+      });
 
-    // Remove any previous AI review for this exception
+    // Remove previous AI review
     await AIReview.deleteMany({
       exception: exception._id,
     });
 
-    // Save AI review
-    const aiReview = await AIReview.create({
-      exception: exception._id,
-      explanation: recommendation.issue,
-      recommendation: recommendation.recommendedAction,
-      suggestedValue: recommendation.suggestedValue || null,
-      confidence:
-        recommendation.confidence === "HIGH"
-          ? 0.9
-          : recommendation.confidence === "MEDIUM"
-          ? 0.7
-          : 0.5,
-      evidence: [
-        recommendation.whyItMatters,
-        `Current value: ${exception.actualValue}`,
-      ],
-      model: "Google Gemini",
-      prompt: "Loan exception analysis",
-      decision: "PENDING",
-    });
+    // Save new AI review
+    const aiReview =
+      await AIReview.create({
+        exception: exception._id,
+
+        explanation:
+          recommendation.issue,
+
+        recommendation:
+          recommendation.recommendedAction,
+
+        suggestedValue:
+          recommendation.suggestedValue ||
+          null,
+
+        confidence:
+          recommendation.confidence ===
+          "HIGH"
+            ? 0.9
+            : recommendation.confidence ===
+              "MEDIUM"
+            ? 0.7
+            : 0.5,
+
+        evidence: [
+          recommendation.whyItMatters,
+          `Current value: ${exception.actualValue}`,
+        ],
+
+        model: "Google Gemini",
+
+        prompt:
+          "Loan exception analysis",
+
+        decision: "PENDING",
+      });
 
     // Link AI review to exception
-    exception.aiReview = aiReview._id;
+    exception.aiReview =
+      aiReview._id;
+
     await exception.save();
 
+    // Audit AI recommendation
     await createAuditLog({
-  loanId: loan._id,
-  action: "AI_RECOMMENDATION_GENERATED",
-  actor: "SYSTEM",
-  details: {
-    exceptionId: exception._id,
-    exceptionType: exception.exceptionType,
-    recommendation: recommendation.recommendedAction,
-    confidence: recommendation.confidence,
-  },
-  metadata: {
-    model: "Google Gemini",
-  },
-});
+      loanId: loan._id,
+
+      action:
+        "AI_RECOMMENDATION_GENERATED",
+
+      actor: "SYSTEM",
+
+      details: {
+        exceptionId:
+          exception._id,
+
+        exceptionType:
+          exception.exceptionType,
+
+        recommendation:
+          recommendation.recommendedAction,
+
+        confidence:
+          recommendation.confidence,
+      },
+
+      metadata: {
+        model: "Google Gemini",
+      },
+    });
 
     res.json({
       success: true,
-      message: "AI recommendation generated successfully",
+
+      message:
+        "AI recommendation generated successfully",
+
       data: {
-        exceptionId: exception._id,
+        exceptionId:
+          exception._id,
+
         loanId: loan._id,
+
         recommendation,
-        aiReviewId: aiReview._id,
+
+        aiReviewId:
+          aiReview._id,
       },
     });
   } catch (error) {
-    console.error("AI recommendation error:", error);
+    console.error(
+      "AI recommendation error:",
+      error
+    );
 
     res.status(500).json({
       success: false,
-      message: "Failed to generate AI recommendation",
+      message:
+        "Failed to generate AI recommendation",
       error: error.message,
     });
   }
 };
+
+// ============================================================
+// EXPORTS
+// ============================================================
+
 module.exports = {
   getExceptions,
   getExceptionById,
   reviewException,
   getAIRecommendation,
 };
+

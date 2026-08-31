@@ -15,16 +15,6 @@ import Upload from "./pages/Upload";
 import Login from "./pages/Login";
 import ProtectedRoute from "./components/ProtectedRoute";
 
-// const ProtectedRoute = ({ children }) => {
-//   const token = localStorage.getItem("token");
-
-//   if (!token) {
-//     return <Navigate to="/login" replace />;
-//   }
-
-//   return children;
-// };
-
 const AppLayout = () => {
   const navigate = useNavigate();
 
@@ -35,7 +25,6 @@ const AppLayout = () => {
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
-
     navigate("/login");
   };
 
@@ -48,6 +37,7 @@ const AppLayout = () => {
           </Link>
 
           <div className="nav-links">
+
             {user?.role === "DATA_OPERATOR" && (
               <Link to="/upload">Upload</Link>
             )}
@@ -76,60 +66,44 @@ const AppLayout = () => {
             >
               Logout
             </button>
+
           </div>
         </div>
       </nav>
 
-     <Routes>
+      <Routes>
 
-  <Route path="/login" element={<Login />} />
+        <Route
+          path="/"
+          element={<Dashboard />}
+        />
 
-  <Route
-    path="/"
-    element={
-      <ProtectedRoute>
-        <Dashboard />
-      </ProtectedRoute>
-    }
-  />
+        <Route
+          path="/upload"
+          element={<Upload />}
+        />
 
-  <Route
-    path="/upload"
-    element={
-      <ProtectedRoute>
-        <Upload />
-      </ProtectedRoute>
-    }
-  />
+        <Route
+          path="/exceptions"
+          element={<Exceptions />}
+        />
 
-  <Route
-    path="/exceptions"
-    element={
-      <ProtectedRoute>
-        <Exceptions />
-      </ProtectedRoute>
-    }
-  />
+        <Route
+          path="/loans/:id"
+          element={<LoanDetails />}
+        />
 
-  <Route
-    path="/loans/:id"
-    element={
-      <ProtectedRoute>
-        <LoanDetails />
-      </ProtectedRoute>
-    }
-  />
+        <Route
+          path="/audit"
+          element={<AuditTrail />}
+        />
 
-  <Route
-    path="/audit"
-    element={
-      <ProtectedRoute>
-        <AuditTrail />
-      </ProtectedRoute>
-    }
-  />
+        <Route
+          path="*"
+          element={<Navigate to="/" replace />}
+        />
 
-</Routes>
+      </Routes>
     </>
   );
 };
@@ -137,8 +111,13 @@ const AppLayout = () => {
 function App() {
   return (
     <BrowserRouter>
+
       <Routes>
-        <Route path="/login" element={<Login />} />
+
+        <Route
+          path="/login"
+          element={<Login />}
+        />
 
         <Route
           path="/*"
@@ -148,7 +127,9 @@ function App() {
             </ProtectedRoute>
           }
         />
+
       </Routes>
+
     </BrowserRouter>
   );
 }
